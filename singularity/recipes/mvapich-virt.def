@@ -1,0 +1,43 @@
+BootStrap: yum
+OSVersion: 7
+MirrorURL: http://mirror.centos.org/centos-%{OSVERSION}/%{OSVERSION}/os/x86_64/
+Include: yum
+
+%help
+Container with MVAPICH2-Virt.
+
+%labels
+    Author amverma
+    Version 1.0
+
+%setup
+    mkdir -p ${SINGULARITY_ROOTFS}/scratch
+
+%post
+
+# Variables
+    INSTALL_DIR=/scratch
+    mkdir -p $INSTALL_DIR
+    pushd $INSTALL_DIR
+    MVAPICH_ROOT=mvapich2
+
+# Required packages
+    MVAPICH_RPM=mvapich2-virt-2.2-1.el7.centos.x86_64.rpm
+
+# Install MVAPICH2-Virt
+    wget -nc --retry-connrefused --tries=3 --waitretry=5 http://mvapich.cse.ohio-state.edu/download/mvapich/virt/${MVAPICH_RPM}
+    rpm --prefix $INSTALL_DIR/$MVAPICH_ROOT -Uvh ${MVAPICH_RPM} --force --nodeps
+
+%environment
+    export MPI_DIR=/scratch/mvapich2
+    export PATH=${PATH}:${MPI_DIR}/bin
+    export LD_LIBRARY_PATH=${LD_LIBRARY_PATH-}:$MPI_DIR/lib64
+
+%test
+    export MPI_DIR=/scratch/mvapich2
+    export PATH=${PATH}:${MPI_DIR}/bin
+    export LD_LIBRARY_PATH=${LD_LIBRARY_PATH-}:$MPI_DIR/lib64
+    mpirun -np 2 $MPI_DIR/libexec/osu-micro-benchmarks/mpi/pt2pt/osu_latency
+
+%runscript
+    echo "Hello from inside the MVAPICH-Virt container."

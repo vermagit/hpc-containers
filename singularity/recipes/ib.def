@@ -1,0 +1,86 @@
+BootStrap: yum
+OSVersion: 7
+MirrorURL: http://mirror.centos.org/centos-%{OSVERSION}/%{OSVERSION}/os/x86_64/
+Include: yum
+
+%help
+Container with Mellanox OFED and UCX.
+
+%labels
+    Author amverma
+    Version 1.0
+
+%setup
+    mkdir -p ${SINGULARITY_ROOTFS}/scratch
+
+%files
+    /var/lib/waagent/SharedConfig.xml /scratch/SharedConfig.xml
+
+%post
+
+# Variables
+    INSTALL_DIR=/scratch
+    WAAGENT_XML=$INSTALL_DIR/SharedConfig.xml
+    mkdir -p $INSTALL_DIR
+    pushd $INSTALL_DIR
+
+    yum install -y perl
+
+# Install Mellanox OFED
+    #KERNEL=3.10.0-862.11.6.el7.x86_64 #is not available
+    #KERNEL=3.10.0-957.1.3.el7.x86_64
+    #KERNEL=$(uname -r)
+    #yum install -y kernel-devel-${KERNEL}
+    KERNEL=3.10.0-862.el7.x86_64
+    rpm -i http://vault.centos.org/7.5.1804/os/x86_64/Packages/kernel-devel-${KERNEL}.rpm
+
+    yum install -y epel-release
+    yum install -y kernel-${KERNEL} kernel-devel-${KERNEL}
+    yum install -y wget
+    yum install -y python-devel
+    yum install -y redhat-rpm-config rpm-build gcc-gfortran gcc-c++
+    yum install -y gtk2 atk cairo tcl tk createrepo
+    yum install -y pciutils make lsof ethtool
+    yum install -y numactl-libs libnl3 libmnl tcsh
+
+    #MLNX_OFED_DIR=MLNX_OFED_LINUX-4.4-2.0.7.0-rhel7.5-x86_64
+    MLNX_OFED_DIR=MLNX_OFED_LINUX-4.5-1.0.1.0-rhel7.5-x86_64
+
+    wget --retry-connrefused --tries=3 --waitretry=5 http://content.mellanox.com/ofed/MLNX_OFED-4.5-1.0.1.0/${MLNX_OFED_DIR}.tgz
+    tar zxvf ${MLNX_OFED_DIR}.tgz
+    pushd ${MLNX_OFED_DIR}
+    ./mlnxofedinstall --kernel-sources /usr/src/kernels/$KERNEL --add-kernel-support --skip-repo
+    popd
+
+# Unnecessary
+#    sed -i 's/LOAD_EIPOIB=no/LOAD_EIPOIB=yes/g' /etc/infiniband/openib.conf
+#    /etc/init.d/openibd restart
+#    if [ $? -eq 1 ]
+#    then
+#        modprobe -rv  ib_isert rpcrdma ib_srpt
+#        /etc/init.d/openibd restart
+#    fi
+
+#    ifconfig ib0 $(sed '/rdmaIPv4Address=/!d;s/.*rdmaIPv4Address="\([0-9.]*\)".*/\1/' $WAAGENT_XML)/16
+
+# Install UCX
+    yum install -y numactl-devel
+    UCX_ROOT=ucx-1.4.0
+    wget -nc --retry-connrefused --tries=3 --waitretry=5 https://github.com/openucx/ucx/releases/download/v1.4.0/$UCX_ROOT.tar.gz
+    tar -xvf $UCX_ROOT.tar.gz
+    pushd $UCX_ROOT
+    ./configure --prefix=$INSTALL_DIR/$UCX_ROOT
+    make -j 16 && make install
+    popd
+
+    popd
+
+%environment
+    export UCX_DIR=/scratch/ucx-1.4.0
+
+%test
+    yum install -y net-tools
+    /usr/sbin/ifconfig
+
+%runscript
+    echo "Hello from inside the IB container."

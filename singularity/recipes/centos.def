@@ -1,0 +1,17 @@
+BootStrap: yum
+OSVersion: 7
+MirrorURL: http://mirror.centos.org/centos-%{OSVERSION}/%{OSVERSION}/os/x86_64/
+Include: yum
+
+%help
+Base CentOS container.
+
+%labels
+    Author amverma
+    Version 1.0
+
+%test
+    rpm -qa kernel*
+
+%runscript
+    echo "Hello from inside the base CentOS container."

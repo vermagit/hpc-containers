@@ -1,0 +1,66 @@
+BootStrap: yum
+OSVersion: 7
+MirrorURL: http://mirror.centos.org/centos-%{OSVERSION}/%{OSVERSION}/os/x86_64/
+Include: yum
+
+%help
+Container with OpenMPI-4.0.0.
+
+%labels
+    Author amverma
+    Version 1.0
+
+%setup
+    mkdir -p ${SINGULARITY_ROOTFS}/scratch
+
+%post
+
+# Variables
+    INSTALL_DIR=/scratch
+    mkdir -p $INSTALL_DIR
+    pushd $INSTALL_DIR
+    UCX_ROOT=ucx-1.4.0
+    OMPI_ROOT=openmpi-4.0.0
+
+# Required packages
+
+# Install OpenMPI 4.0.0 with UCX
+    wget -nc --retry-connrefused --tries=3 --waitretry=5 https://download.open-mpi.org/release/open-mpi/v4.0/$OMPI_ROOT.tar.gz
+    tar xzvf $OMPI_ROOT.tar.gz
+    pushd $OMPI_ROOT
+    ./configure --with-ucx=$INSTALL_DIR/$UCX_ROOT --prefix=$INSTALL_DIR/$OMPI_ROOT
+    make -j 16 && make install
+    popd
+
+    popd
+
+%environment
+    export MPI_DIR=/scratch/openmpi-4.0.0
+    export PATH=${PATH}:${MPI_DIR}/bin
+    export LD_LIBRARY_PATH=${LD_LIBRARY_PATH-}:$MPI_DIR/lib
+
+%test
+    # Running OpenMPI example
+    export MPI_DIR=/scratch/openmpi-4.0.0
+    export PATH=${PATH}:$MPI_DIR/bin
+    export LD_LIBRARY_PATH=${LD_LIBRARY_PATH-}:$MPI_DIR/lib
+    pushd $MPI_DIR/examples
+    make
+
+    yum install -y openssh-clients
+
+    # Set PKEY
+    PKEY0=$(cat /sys/class/infiniband/mlx5_0/ports/1/pkeys/0)
+    PKEY1=$(cat /sys/class/infiniband/mlx5_0/ports/1/pkeys/1)
+    if [ $(($PKEY0 - $PKEY1)) -gt 0 ]; then
+        IB_PKEY=$PKEY0
+    else
+        IB_PKEY=$PKEY1
+    fi
+    UCX_PKEY=$(printf '0x%04x' "$(( $IB_PKEY & 0x0FFF ))")
+    #UCX_PKEY=${IB_PKEY/x?/x0} # clear MSB
+    mpirun --allow-run-as-root -np 2 --map-by numa --bind-to core --report-bindings -mca pml ucx --mca btl ^vader,tcp,openib -x UCX_NET_DEVICES=mlx5_0:1 -x UCX_IB_PKEY=$UCX_PKEY ./hello_c
+    popd
+
+%runscript
+    echo "Hello from inside the OpenMPI container."
