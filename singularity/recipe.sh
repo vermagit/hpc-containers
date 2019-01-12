@@ -6,53 +6,51 @@
 
 #-----------------------------------------------------------
 # Base centOS image from definition file
-#sudo singularity build centOS.sif centos.def
+#sudo singularity build centos.sif centos.def
 
-# Writable centOS/ 'sandbox'
-#sudo singularity build --sandbox centOS/ centOS.sif
+# Writable centos/ 'sandbox'
+#sudo singularity build --sandbox centos/ centos.sif
 
 # Push to library
-#singularity push centOS.sif library://verma/default/layer:centos
+#singularity push centos.sif library://verma/default/layer:centos
 
-# Pull from library and build sandbox centOS/
-#sudo singularity build --sandbox centOS/ library://verma/default/layer:centos
+# Pull from library and build sandbox centos/
+#sudo singularity build --sandbox centos/ library://verma/default/layer:centos
 
 
 #-----------------------------------------------------------
-# Start inhering and 'layering'/'stacking' containers on top
+# Start inheriting and 'layering'/'stacking' containers on top
+# build <destination container> "from" <source container>
+
+build_container()
+{
+  dest=$1
+  src=$2
+  sudo cp -r $src/ $dest/
+  sudo singularity build --update $dest/ $dest.def
+  sudo singularity build $dest.sif $dest/
+  singularity push $dest.sif library://verma/default/layer:$dest
+}
+
+
+#-----------------------------------------------------------
 # IB container
 
-OBJ=ib
-#sudo cp -r centOS/ $OBJ/
-#sudo singularity build --update $OBJ/ $OBJ.def
-#sudo singularity build $OBJ.sif $OBJ/
-#singularity push $OBJ.sif library://verma/default/layer:$OBJ
+#build_container "ib" "centos"
 
 
 #-----------------------------------------------------------
 # Next layer: MPI containers
 
-OBJ=openmpi
-#sudo cp -r ib/ $OBJ/
-#sudo singularity build --update $OBJ/ $OBJ.def
-#sudo singularity build $OBJ.sif $OBJ/
-#singularity push $OBJ.sif library://verma/default/layer:$OBJ
+#build_container "openmpi" "ib"
 
-OBJ=mvapich
-#sudo cp -r ib/ $OBJ/
-#sudo singularity build --update $OBJ/ $OBJ-virt.def
-#sudo singularity build $OBJ.sif $OBJ/
-#singularity push $OBJ.sif library://verma/default/layer:$OBJ
+#build_container "mvapich" "ib"
 
 
 #-----------------------------------------------------------
 # Next layer: Apps
 
-OBJ=openfoam
-#sudo cp -r openmpi/ $OBJ/
-#sudo singularity build --update $OBJ/ $OBJ.def
-#sudo singularity build $OBJ.sif $OBJ/
-#singularity push $OBJ.sif library://verma/default/layer:$OBJ
+#build_container "openfoam" "openmpi"
 
 
 popd # from common_dirs.sh->$INSTALL_DIR

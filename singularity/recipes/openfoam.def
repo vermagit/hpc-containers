@@ -17,6 +17,7 @@ Container with OpenFOAM v1806.
 
 # Variables
     INSTALL_DIR=/scratch
+    pushd $INSTALL_DIR
     OPENFOAM_DIR=$INSTALL_DIR/OpenFOAM
     mkdir -p $OPENFOAM_DIR
 
@@ -42,6 +43,10 @@ Container with OpenFOAM v1806.
     export WM_NCOMPPROCS=$((`grep -c ^processor /proc/cpuinfo`-1))
     sed -i 's/SCOTCH_VERSION=scotch_6.0.3/SCOTCH_VERSION=scotch-none/g' ./etc/config.sh/scotch # Dont build scotch as it fails (likley due to MPI)
     ./Allwmake
+    popd
+
+# Remove tarballs etc.
+    rm *.tgz
     popd
 
 %environment

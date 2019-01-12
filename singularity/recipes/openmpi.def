@@ -28,10 +28,12 @@ Container with OpenMPI-4.0.0.
     wget -nc --retry-connrefused --tries=3 --waitretry=5 https://download.open-mpi.org/release/open-mpi/v4.0/$OMPI_ROOT.tar.gz
     tar xzvf $OMPI_ROOT.tar.gz
     pushd $OMPI_ROOT
-    ./configure --with-ucx=$INSTALL_DIR/$UCX_ROOT --prefix=$INSTALL_DIR/$OMPI_ROOT
+    ./configure --with-ucx=$INSTALL_DIR/$UCX_ROOT --prefix=$INSTALL_DIR/$OMPI_ROOT --enable-mpirun-prefix-by-default
     make -j 16 && make install
     popd
 
+# Remove tarballs etc.
+    rm *.tar.gz
     popd
 
 %environment
