@@ -66,20 +66,26 @@ Container with Mellanox OFED and UCX.
 
 # Install UCX
     yum install -y numactl-devel
-    UCX_ROOT=ucx-1.4.0
-    wget -nc --retry-connrefused --tries=3 --waitretry=5 https://github.com/openucx/ucx/releases/download/v1.4.0/$UCX_ROOT.tar.gz
+    UCX_ROOT=ucx-1.5.0
+    wget -nc --retry-connrefused --tries=3 --waitretry=5 https://github.com/openucx/ucx/releases/download/v1.5.0-rc1/$UCX_ROOT.tar.gz
     tar -xvf $UCX_ROOT.tar.gz
     pushd $UCX_ROOT
-    ./configure --prefix=$INSTALL_DIR/$UCX_ROOT
+    ./contrib/configure-release --prefix=$INSTALL_DIR/$UCX_ROOT
     make -j 16 && make install
     popd
 
+# Install HPC-X
+    HCOLL_ROOT=hpcx-v2.3.0-gcc-MLNX_OFED_LINUX-4.5-1.0.1.0-redhat7.5-x86_64
+    wget -nc --retry-connrefused --tries=3 --waitretry=5 http://www.mellanox.com/downloads/hpc/hpc-x/v2.3/$HCOLL_ROOT.tbz
+    tar -xvf $HCOLL_ROOT.tbz
+
 # Remove tarballs etc.
-    rm *.tar.gz *.tgz
+    rm *.tar.gz *.tgz *.tbz
     popd
 
 %environment
-    export UCX_DIR=/scratch/ucx-1.4.0
+    export UCX_DIR=/scratch/ucx-1.5.0
+    export HCOLL_DIR=hpcx-v2.3.0-gcc-MLNX_OFED_LINUX-4.5-1.0.1.0-redhat7.5-x86_64
 
 %test
     yum install -y net-tools

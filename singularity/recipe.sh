@@ -42,9 +42,9 @@ build_container()
 #-----------------------------------------------------------
 # Next layer: MPI containers
 
-#build_container "openmpi" "ib"
-
+#build_container "mpich" "ib"
 #build_container "mvapich" "ib"
+#build_container "openmpi" "ib"
 
 
 #-----------------------------------------------------------
