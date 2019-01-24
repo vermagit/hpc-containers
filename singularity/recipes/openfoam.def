@@ -1,7 +1,5 @@
-BootStrap: yum
-OSVersion: 7
-MirrorURL: http://mirror.centos.org/centos-%{OSVERSION}/%{OSVERSION}/os/x86_64/
-Include: yum
+BootStrap: library
+From: verma/default/layer:openmpi
 
 %help
 Container with OpenFOAM v1806.
@@ -25,17 +23,17 @@ Container with OpenFOAM v1806.
     yum install -y zlib-devel
     yum install -y flex which
 
-# Install OpenMPI 4.0.0 with UCX
+# Install OpenFOAM
     wget -nc --retry-connrefused --tries=3 --waitretry=5 https://sourceforge.net/projects/openfoamplus/files/v1806/OpenFOAM-v1806.tgz
     wget -nc --retry-connrefused --tries=3 --waitretry=5 https://sourceforge.net/projects/openfoamplus/files/v1806/ThirdParty-v1806.tgz
 
     tar -xzvf OpenFOAM-v1806.tgz -C $OPENFOAM_DIR
     tar -xzvf ThirdParty-v1806.tgz -C $OPENFOAM_DIR
 
-    # Either source /.singularity.d/env/90-environment.sh or ...
-    MPI_DIR=$INSTALL_DIR/openmpi-4.0.0
-    export PATH=${PATH}:$MPI_DIR/bin
-    export LD_LIBRARY_PATH=${LD_LIBRARY_PATH-}:$MPI_DIR/lib
+    source /.singularity.d/env/91-environment.sh
+    #export MPI_DIR=$INSTALL_DIR/openmpi-4.0.0
+    #export PATH=${PATH}:$MPI_DIR/bin
+    #export LD_LIBRARY_PATH=${LD_LIBRARY_PATH-}:$MPI_DIR/lib
 
     pushd $OPENFOAM_DIR/OpenFOAM-v1806
     sed -i 's/return 1/return 0/g' ./etc/config.sh/functions # The following 'return 1' causes the Singularity build to exit with 255
@@ -49,52 +47,49 @@ Container with OpenFOAM v1806.
     rm *.tgz
     popd
 
-%environment
-    export MPI_DIR=/scratch/openmpi-4.0.0
-    export PATH=${PATH}:${MPI_DIR}/bin
-    export LD_LIBRARY_PATH=${LD_LIBRARY_PATH-}:$MPI_DIR/lib
-    export OPENFOAM_DIR=/scratch/OpenFOAM
+# Set environment
+    echo 'export OPENFOAM_DIR=/scratch/OpenFOAM' >>$SINGULARITY_ENVIRONMENT
 
 %test
-    # Setting up OpenMPI example
-    export MPI_DIR=/scratch/openmpi-4.0.0
-    export PATH=${PATH}:$MPI_DIR/bin
-    export LD_LIBRARY_PATH=${LD_LIBRARY_PATH-}:$MPI_DIR/lib
+    source /.singularity.d/env/91-environment.sh
+    #export MPI_DIR=/scratch/openmpi-4.0.0
+    #export PATH=${PATH}:$MPI_DIR/bin
+    #export LD_LIBRARY_PATH=${LD_LIBRARY_PATH-}:$MPI_DIR/lib
+    #export OPENFOAM_DIR=/scratch/OpenFOAM
 
-    OPENFOAM_DIR=/scratch/OpenFOAM
     source $OPENFOAM_DIR/OpenFOAM-v1806/etc/bashrc
     foamInstallationTest
 
     # Not actually running it, to save space. Uncomment following lines to run the example
-    RUN_DIR=$OPENFOAM_DIR/run
-    mkdir -p $RUN_DIR
-    cp -r $OPENFOAM_DIR/OpenFOAM-v1806/tutorials/multiphase/interFoam/laminar/sloshingTank3D $RUN_DIR/.
-    pushd $RUN_DIR/sloshingTank3D
-    sed -i 's/numberOfSubdomains 16;/numberOfSubdomains 15;/g' ./system/decomposeParDict
-    sed -i 's/n           (4 2 2);/n           (1 1 15);/g' ./system/decomposeParDict
+    #RUN_DIR=$OPENFOAM_DIR/run
+    #mkdir -p $RUN_DIR
+    #cp -r $OPENFOAM_DIR/OpenFOAM-v1806/tutorials/multiphase/interFoam/laminar/sloshingTank3D $RUN_DIR/.
+    #pushd $RUN_DIR/sloshingTank3D
+    #sed -i 's/numberOfSubdomains 16;/numberOfSubdomains 15;/g' ./system/decomposeParDict
+    #sed -i 's/n           (4 2 2);/n           (1 1 15);/g' ./system/decomposeParDict
     #m4 ./system/blockMeshDict.m4 > ./system/blockMeshDict
-    source $OPENFOAM_DIR/OpenFOAM-v1806/bin/tools/RunFunctions
+    #source $OPENFOAM_DIR/OpenFOAM-v1806/bin/tools/RunFunctions
     #runApplication blockMesh
-    cp ./0/alpha.water.orig ./0/alpha.water
+    #cp ./0/alpha.water.orig ./0/alpha.water
     #runApplication setFields
     #decomposePar -force
-    sed -i 's/endTime         40;/endTime         1;/g' ./system/controlDict
-    sed -i 's/writeInterval   0.05;/writeInterval   0.5;/g' ./system/controlDict
+    #sed -i 's/endTime         40;/endTime         1;/g' ./system/controlDict
+    #sed -i 's/writeInterval   0.05;/writeInterval   0.5;/g' ./system/controlDict
 
     # Set PKEY
-    PKEY0=$(cat /sys/class/infiniband/mlx5_0/ports/1/pkeys/0)
-    PKEY1=$(cat /sys/class/infiniband/mlx5_0/ports/1/pkeys/1)
-    if [ $(($PKEY0 - $PKEY1)) -gt 0 ]; then
-        IB_PKEY=$PKEY0
-    else
-        IB_PKEY=$PKEY1
-    fi
-    #UCX_PKEY=${IB_PKEY/x?/x0} # alternative to below to clear MSB
-    UCX_PKEY=$(printf '0x%04x' "$(( $IB_PKEY & 0x0FFF ))")
+    #PKEY0=$(cat /sys/class/infiniband/mlx5_0/ports/1/pkeys/0)
+    #PKEY1=$(cat /sys/class/infiniband/mlx5_0/ports/1/pkeys/1)
+    #if [ $(($PKEY0 - $PKEY1)) -gt 0 ]; then
+    #    IB_PKEY=$PKEY0
+    #else
+    #    IB_PKEY=$PKEY1
+    #fi
+    ##UCX_PKEY=${IB_PKEY/x?/x0} # alternative to below to clear MSB
+    #UCX_PKEY=$(printf '0x%04x' "$(( $IB_PKEY & 0x0FFF ))")
 
     #mpirun --allow-run-as-root -np 15 --map-by numa --bind-to core --report-bindings -mca pml ucx -mca btl self,vader -x UCX_IB_PKEY=$UCX_PKEY -x UCX_TLS=rc -x UCX_NET_DEVICES=mlx5_0:1 interFoam -parallel
 
-    popd
+    #popd
 
 %runscript
     echo "Hello from inside the OpenFOAM container."

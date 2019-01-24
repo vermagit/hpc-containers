@@ -1,0 +1,79 @@
+BootStrap: library
+From: verma/default/layer:openmpi
+
+%help
+Container with NAS benchmark.
+
+%labels
+    Author amverma
+    Version 1.0
+
+%setup
+    mkdir -p ${SINGULARITY_ROOTFS}/scratch
+
+%post
+
+# Variables
+    INSTALL_DIR=/scratch
+    pushd $INSTALL_DIR
+    NAS_ROOT=NPB3.3.1
+
+# Install NAS Benchmark
+    wget -nc --retry-connrefused --tries=3 --waitretry=5 https://www.nas.nasa.gov/assets/npb/$NAS_ROOT.tar.gz
+    tar -xvzf $NAS_ROOT.tar.gz
+
+    source /.singularity.d/env/91-environment.sh
+    #export MPI_DIR=$INSTALL_DIR/openmpi-4.0.0
+    #export PATH=${PATH}:$MPI_DIR/bin
+    #export LD_LIBRARY_PATH=${LD_LIBRARY_PATH-}:$MPI_DIR/lib
+
+    # Edit config and makefile to build
+    pushd $NAS_ROOT/NPB3.3-MPI
+    pushd ./config
+    #sed -r 's/(S)\s+1/E       60/' ./suite.def.template > ./suite.def
+    cp suite.def.template suite.def
+    cp make.def.template make.def
+    sed -i 's#MPIF77 = f77#MPI_DIR=/scratch/openmpi-4.0.0\nMPIF77 = $(MPI_DIR)/bin/mpif77#' ./make.def
+    sed -i 's#FMPI_LIB  = -L/usr/local/lib -lmpi#FMPI_LIB = -L$(MPI_DIR)/lib64 -lmpi#' ./make.def
+    sed -i 's#FMPI_INC = -I/usr/local/include#FMPI_INC = -I$(MPI_DIR)/include#' ./make.def
+    sed -ri 's#(FFLAGS)\s+= -O#FFLAGS  = -O3 -fno-range-check -mcmodel=medium -Wno-unused-variable#' ./make.def
+    sed -i 's#FLINKFLAGS = -O#FLINKFLAGS = -O3#' ./make.def
+    sed -i 's#MPICC = cc#MPICC = $(MPI_DIR)/bin/mpicc#' ./make.def
+    sed -i 's#CMPI_LIB  = -L/usr/local/lib -lmpi#CMPI_LIB  = FMPI_LIB#' ./make.def
+    sed -i 's#CMPI_INC = -I/usr/local/include#CMPI_INC = FMPI_INC#' ./make.def
+    sed -ri 's#(CFLAGS)\s+= -O#CFLAGS  = -O3 -mcmodel=medium -Wno-unused-variable -Wno-unused-but-set-variable -Wno-implicit-function-declaration#' ./make.def
+    sed -i 's#CLINKFLAGS = -O#CLINKFLAGS = -O3#' ./make.def
+    popd
+
+    #make suite
+    make "lu" NPROCS=60 CLASS="E"
+    popd
+
+# Remove tarballs etc.
+    rm *.tar.gz
+    popd
+
+# Set environment
+    echo 'export NAS_DIR=/scratch/NPB3.3.1/NPB3.3-MPI' >>$SINGULARITY_ENVIRONMENT
+
+%test
+    source /.singularity.d/env/91-environment.sh
+
+%runscript
+    #export MPI_DIR=/scratch/openmpi-4.0.0
+    #export PATH=${PATH}:${MPI_DIR}/bin
+    #export LD_LIBRARY_PATH=${LD_LIBRARY_PATH-}:$MPI_DIR/lib
+    #export NAS_DIR=/scratch/NPB3.3.1/NPB3.3-MPI
+
+    # Set PKEY
+    PKEY0=$(cat /sys/class/infiniband/mlx5_0/ports/1/pkeys/0)
+    PKEY1=$(cat /sys/class/infiniband/mlx5_0/ports/1/pkeys/1)
+    if [ $(($PKEY0 - $PKEY1)) -gt 0 ]; then
+        IB_PKEY=$PKEY0
+    else
+        IB_PKEY=$PKEY1
+    fi
+    #UCX_PKEY=${IB_PKEY/x?/x0} # alternative to below to clear MSB
+    UCX_PKEY=$(printf '0x%04x' "$(( $IB_PKEY & 0x0FFF ))")
+
+    mpirun --allow-run-as-root -np 60 --map-by core --bind-to core --report-bindings -mca pml ucx -mca btl self,vader -x UCX_IB_PKEY=$UCX_PKEY -x UCX_TLS=rc -x UCX_NET_DEVICES=mlx5_0:1 $NAS_DIR/bin/lu.E.60

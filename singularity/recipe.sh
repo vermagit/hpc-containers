@@ -5,6 +5,8 @@
 
 
 #-----------------------------------------------------------
+# Examples
+
 # Base centOS image from definition file
 #sudo singularity build centos.sif centos.def
 
@@ -20,9 +22,10 @@
 
 #-----------------------------------------------------------
 # Start inheriting and 'layering'/'stacking' containers on top
-# build <destination container> "from" <source container>
+# 2 methods provided as examples here
 
-build_container()
+# build <destination container> from sandbox <source container>
+build_from_sandbox()
 {
   dest=$1
   src=$2
@@ -35,22 +38,44 @@ build_container()
 
 #-----------------------------------------------------------
 # IB container
-
-#build_container "ib" "centos"
-
+#build_from_sandbox "ib" "centos"
 
 #-----------------------------------------------------------
 # Next layer: MPI containers
-
-#build_container "mpich" "ib"
-#build_container "mvapich" "ib"
-#build_container "openmpi" "ib"
-
+#build_from_sandbox "mpich" "ib"
+#build_from_sandbox "mvapich" "ib"
+#build_from_sandbox "openmpi" "ib"
 
 #-----------------------------------------------------------
 # Next layer: Apps
+#build_from_sandbox "openfoam" "openmpi"
+#build_from_sandbox "petsc" "openmpi"
+#build_from_sandbox "nas" "openmpi"
 
-#build_container "openfoam" "openmpi"
+
+# build <destination container> from sandbox <source container>
+build_from_image()
+{
+  dest=$1
+  sudo singularity build --force $dest.sif $dest.def
+  singularity push $dest.sif library://verma/default/layer:$dest
+}
+
+#-----------------------------------------------------------
+# IB container
+#build_from_image "ib"
+
+#-----------------------------------------------------------
+# Next layer: MPI containers
+#build_from_image "mpich"
+#build_from_image "mvapich"
+#build_from_image "openmpi"
+
+#-----------------------------------------------------------
+# Next layer: Apps
+#build_from_image "openfoam"
+#build_from_image "petsc"
+#build_from_image "nas"
 
 
 popd # from common_dirs.sh->$INSTALL_DIR

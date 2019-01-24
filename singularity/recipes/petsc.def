@@ -1,0 +1,67 @@
+BootStrap: library
+From: verma/default/layer:openmpi
+
+%help
+Container with PETSc.
+
+%labels
+    Author amverma
+    Version 1.0
+
+%setup
+    mkdir -p ${SINGULARITY_ROOTFS}/scratch
+
+%post
+
+# Variables
+    INSTALL_DIR=/scratch
+    pushd $INSTALL_DIR
+
+# Install PETSc with given MPI_DIR
+    wget -nc --retry-connrefused --tries=3 --waitretry=5 http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.10.3.tar.gz
+    tar -xzvf petsc-lite-3.10.3.tar.gz
+
+    source /.singularity.d/env/91-environment.sh
+    #export MPI_DIR=$INSTALL_DIR/openmpi-4.0.0
+    #export PATH=${PATH}:$MPI_DIR/bin
+    #export LD_LIBRARY_PATH=${LD_LIBRARY_PATH-}:$MPI_DIR/lib
+
+    pushd petsc-3.10.3
+    ./configure --download-fblaslapack --with-mpi-dir=$MPI_DIR
+    make all
+    popd
+
+# Remove tarballs etc.
+    rm *.tar.gz
+    popd
+
+# Set environment
+    echo 'export PETSC_DIR=/scratch/petsc-3.10.3' >>$SINGULARITY_ENVIRONMENT
+
+%test
+    source /.singularity.d/env/91-environment.sh
+    #export MPI_DIR=/scratch/openmpi-4.0.0
+    #export PATH=${PATH}:$MPI_DIR/bin
+    #export LD_LIBRARY_PATH=${LD_LIBRARY_PATH-}:$MPI_DIR/lib
+    #export PETSC_DIR=/scratch/petsc-3.10.3
+
+    pushd $PETSC_DIR/src/snes/examples/tutorials
+    make ex19
+
+    # Set PKEY
+    PKEY0=$(cat /sys/class/infiniband/mlx5_0/ports/1/pkeys/0)
+    PKEY1=$(cat /sys/class/infiniband/mlx5_0/ports/1/pkeys/1)
+    if [ $(($PKEY0 - $PKEY1)) -gt 0 ]; then
+        IB_PKEY=$PKEY0
+    else
+        IB_PKEY=$PKEY1
+    fi
+    #UCX_PKEY=${IB_PKEY/x?/x0} # alternative to below to clear MSB
+    UCX_PKEY=$(printf '0x%04x' "$(( $IB_PKEY & 0x0FFF ))")
+
+    mpirun --allow-run-as-root -np 2 --map-by numa --bind-to core --report-bindings -mca pml ucx -mca btl self,vader -x UCX_IB_PKEY=$UCX_PKEY -x UCX_TLS=rc -x UCX_NET_DEVICES=mlx5_0:1 ./ex19 -da_refine 3 -pc_type mg -ksp_type fgmres
+
+    popd
+
+%runscript
+    echo "Hello from inside the PETSc container."

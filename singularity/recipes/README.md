@@ -15,16 +15,18 @@ The hierarchy of the 'layered' approach is as follows, with each successive laye
 [CentOS](./centos.def): Base OS container.
 
 ### <a name="drivers"></a>Drivers
-[Mellanox OFED for InfiniBand](./ib.def): Container with Mellanox OFED and UCX for best performance over InfiniBand.
+[Mellanox OFED for InfiniBand](./ib.def): Container with Mellanox OFED, UCX and HPC-X for best performance over InfiniBand.
 
 ### <a name="MPI"></a>MPI
-[MVAPICH](./mvapich-virt.def): Container with MVAPICH-Virt.
+[MPICH](./mpich.def): Container with MPICH, configured with UCX, HPC-X.
 
-[OpenMPI](./openmpi.def): Container with OpenMPI and UCX.
+[MVAPICH](./mvapich.def): Container with MVAPICH.
+
+[OpenMPI](./openmpi.def): Container with OpenMPI, configured with UCX.
 
 ### <a name="apps"></a>Applications
 [OpenFOAM](./openfoam.def): Container with complete OpenFOAM (and ThirdParty utilities) installation.
 
-OPM: Coming soon ...
+[PETSc](./petsc.def): Container with PETSc.
 
-NAS Benchmarks: Coming soon ...
+[NAS](./nas.def): Container with NAS Benchmarks.

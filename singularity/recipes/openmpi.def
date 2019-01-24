@@ -1,7 +1,5 @@
-BootStrap: yum
-OSVersion: 7
-MirrorURL: http://mirror.centos.org/centos-%{OSVERSION}/%{OSVERSION}/os/x86_64/
-Include: yum
+BootStrap: library
+From: verma/default/layer:ib
 
 %help
 Container with OpenMPI-4.0.0.
@@ -36,16 +34,17 @@ Container with OpenMPI-4.0.0.
     rm *.tar.gz
     popd
 
-%environment
-    export MPI_DIR=/scratch/openmpi-4.0.0
-    export PATH=${PATH}:${MPI_DIR}/bin
-    export LD_LIBRARY_PATH=${LD_LIBRARY_PATH-}:$MPI_DIR/lib
+# Set environment
+    echo 'export MPI_DIR=/scratch/openmpi-4.0.0' >>$SINGULARITY_ENVIRONMENT
+    echo 'export PATH=${PATH}:${MPI_DIR}/bin' >>$SINGULARITY_ENVIRONMENT
+    echo 'export LD_LIBRARY_PATH=${LD_LIBRARY_PATH-}:$MPI_DIR/lib' >>$SINGULARITY_ENVIRONMENT
 
 %test
-    # Running OpenMPI example
-    export MPI_DIR=/scratch/openmpi-4.0.0
-    export PATH=${PATH}:$MPI_DIR/bin
-    export LD_LIBRARY_PATH=${LD_LIBRARY_PATH-}:$MPI_DIR/lib
+    source /.singularity.d/env/91-environment.sh
+    #export MPI_DIR=/scratch/openmpi-4.0.0
+    #export PATH=${PATH}:$MPI_DIR/bin
+    #export LD_LIBRARY_PATH=${LD_LIBRARY_PATH-}:$MPI_DIR/lib
+
     pushd $MPI_DIR/examples
     make
 

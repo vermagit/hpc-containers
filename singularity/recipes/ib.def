@@ -1,7 +1,5 @@
-BootStrap: yum
-OSVersion: 7
-MirrorURL: http://mirror.centos.org/centos-%{OSVERSION}/%{OSVERSION}/os/x86_64/
-Include: yum
+BootStrap: library
+From: verma/default/layer:centos
 
 %help
 Container with Mellanox OFED and UCX.
@@ -27,12 +25,12 @@ Container with Mellanox OFED and UCX.
     yum install -y perl
 
 # Install Mellanox OFED
-    #KERNEL=3.10.0-862.11.6.el7.x86_64 #is not available
-    #KERNEL=3.10.0-957.1.3.el7.x86_64
     #KERNEL=$(uname -r)
-    #yum install -y kernel-devel-${KERNEL}
-    KERNEL=3.10.0-862.el7.x86_64
-    rpm -i http://vault.centos.org/7.5.1804/os/x86_64/Packages/kernel-devel-${KERNEL}.rpm
+    KERNEL=3.10.0-957.1.3.el7.x86_64
+    #KERNEL=3.10.0-862.11.6.el7.x86_64 #is not available
+    yum install -y kernel-devel-${KERNEL}
+    #KERNEL=3.10.0-862.el7.x86_64
+    #rpm -i http://vault.centos.org/7.5.1804/os/x86_64/Packages/kernel-devel-${KERNEL}.rpm
 
     yum install -y epel-release
     yum install -y kernel-${KERNEL} kernel-devel-${KERNEL}
@@ -83,9 +81,9 @@ Container with Mellanox OFED and UCX.
     rm *.tar.gz *.tgz *.tbz
     popd
 
-%environment
-    export UCX_DIR=/scratch/ucx-1.5.0
-    export HCOLL_DIR=hpcx-v2.3.0-gcc-MLNX_OFED_LINUX-4.5-1.0.1.0-redhat7.5-x86_64
+# Set environment
+    echo 'export UCX_DIR=/scratch/ucx-1.5.0' >>$SINGULARITY_ENVIRONMENT
+    echo 'export HCOLL_DIR=hpcx-v2.3.0-gcc-MLNX_OFED_LINUX-4.5-1.0.1.0-redhat7.5-x86_64' >>$SINGULARITY_ENVIRONMENT
 
 %test
     yum install -y net-tools
