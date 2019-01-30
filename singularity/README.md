@@ -3,6 +3,6 @@ This work intends to expand upon the reproducibility and mobility features of Si
 
 [recipes](./recipes) contain Singularity definition files to build images which are available at the [Singularity Library](https://cloud.sylabs.io/library/verma).
 
-[singularity.sh](./singularity.sh) installs Singularity in the location referenced in [common_dirs.sh](./common_dirs.sh).
+[setup-singularity.sh](./setup-singularity.sh) installs Singularity in the location referenced in [common_dirs.sh](./common_dirs.sh).
 
-[recipe.sh](./recipe.sh) provides examples of Singularity commands to build container images, and how the [definition files](./recipes) re-use existing containers and build progressively on top of them.
+[build-images.sh](./build-images.sh) provides examples of Singularity commands to build container images, and how the [definition files](./recipes) re-use existing containers and build progressively on top of them.

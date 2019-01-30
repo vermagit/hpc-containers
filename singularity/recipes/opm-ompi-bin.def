@@ -1,0 +1,35 @@
+BootStrap: library
+From: verma/default/layer:ib
+
+%help
+Container with opm-simulators-openmpi-bin.
+
+%labels
+    Author amverma
+    Version 1.0
+
+%setup
+    mkdir -p ${SINGULARITY_ROOTFS}/scratch
+
+%post
+
+# Required packages
+    yum install -y yum-utils
+
+# Install OPM
+    yum-config-manager --add-repo https://www.opm-project.org/package/opm.repo
+    yum install opm-simulators-openmpi-bin
+
+%test
+    pushd /scratch
+    wget https://github.com/OPM/opm-data/archive/master.zip
+    unzip master.zip
+    cd opm-data-master/norne
+
+    yum install -y openssh-clients
+
+    /usr/mpi/gcc/openmpi-4.0.0rc5/bin/mpirun --allow-run-as-root -np 4 flow NORNE_ATW2013.DATA --output-dir=out_parallel
+    popd
+
+%runscript
+    echo "Hello from inside the OPM container."

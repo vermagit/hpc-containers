@@ -29,8 +29,9 @@ build_from_sandbox()
 {
   dest=$1
   src=$2
+  options=$3
   sudo cp -r $src/ $dest/
-  sudo singularity build --update $dest/ $dest.def
+  sudo singularity build --update $options $dest/ $dest.def
   sudo singularity build $dest.sif $dest/
   singularity push $dest.sif library://verma/default/layer:$dest
 }
@@ -48,16 +49,18 @@ build_from_sandbox()
 
 #-----------------------------------------------------------
 # Next layer: Apps
-#build_from_sandbox "openfoam" "openmpi"
+#build_from_sandbox "openfoam" "openmpi" "-T"
 #build_from_sandbox "petsc" "openmpi"
 #build_from_sandbox "nas" "openmpi"
+#build_from_image "gromacs" "openmpi" "-T"
 
 
 # build <destination container> from sandbox <source container>
 build_from_image()
 {
   dest=$1
-  sudo singularity build --force $dest.sif $dest.def
+  options=$2
+  sudo singularity build --force $options $dest.sif $dest.def
   singularity push $dest.sif library://verma/default/layer:$dest
 }
 
@@ -73,9 +76,10 @@ build_from_image()
 
 #-----------------------------------------------------------
 # Next layer: Apps
-#build_from_image "openfoam"
+#build_from_image "openfoam" "-T"
 #build_from_image "petsc"
 #build_from_image "nas"
+#build_from_image "gromacs" "-T"
 
 
 popd # from common_dirs.sh->$INSTALL_DIR

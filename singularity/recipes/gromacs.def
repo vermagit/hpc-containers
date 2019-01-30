@@ -1,0 +1,83 @@
+BootStrap: library
+From: verma/default/layer:openmpi
+
+%help
+Container with Gromacs.
+
+%labels
+    Author amverma
+    Version 1.0
+
+%setup
+    mkdir -p ${SINGULARITY_ROOTFS}/scratch
+
+%post
+
+# Variables
+    INSTALL_DIR=/scratch
+    pushd $INSTALL_DIR
+
+# Required packages
+
+    # CMAKE > 3.4.3
+    #yum install -y cmake
+    CMAKE_ROOT=cmake-3.13.3
+    wget -nc --retry-connrefused --tries=3 --waitretry=5 https://github.com/Kitware/CMake/releases/download/v3.13.3/$CMAKE_ROOT.tar.gz
+    tar -xf $CMAKE_ROOT.tar.gz
+    pushd $CMAKE_ROOT
+    ./bootstrap --parallel=16
+    make -j 16 && make install
+    popd
+
+    # NVIDIA CUDA toolkit
+    DRIVER_URL=https://go.microsoft.com/fwlink/?linkid=874273
+    CUDA_REPO_RPM=cuda-repo-rhel-x86_64.rpm
+    wget -nc --retry-connrefused --tries=3 --waitretry=5 $DRIVER_URL -O $CUDA_REPO_RPM -nv
+    rpm -ivh $CUDA_REPO_RPM
+    yum install -y cuda-minimal-build-10-0 cuda-cufft-dev-10-0
+
+# Install Gromacs
+    source /.singularity.d/env/91-environment.sh
+
+    GROMACS_ROOT=gromacs-2018.5
+    wget -nc --retry-connrefused --tries=3 --waitretry=5 ftp://ftp.gromacs.org/pub/gromacs/$GROMACS_ROOT.tar.gz
+    tar -xzvf $GROMACS_ROOT.tar.gz
+    mkdir -p $GROMACS_ROOT/build
+    pushd $GROMACS_ROOT/build
+    cmake .. -DGMX_MPI=on \
+             -DGMX_GPU=on -DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda-10.0 \
+             -DGMX_SIMD=AVX2_256 \
+             -DGMX_BUILD_OWN_FFTW=ON -DCMAKE_PREFIX_PATH=$INSTALL_DIR \
+             -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR/$GROMACS_ROOT
+    make -j 16
+    make install
+    popd
+
+    rm *.tar.gz *.rpm
+    popd
+
+# Set environment
+    echo 'export CUDA_DIR=/usr/local/cuda-10.0' >>$SINGULARITY_ENVIRONMENT
+    echo 'export GROMACS_DIR=/scratch/gromacs-2018.5' >>$SINGULARITY_ENVIRONMENT
+
+%test
+    source /.singularity.d/env/91-environment.sh
+    source $GROMACS_DIR/bin/GMXRC
+    pushd $GROMACS_DIR/src/gromacs/trajectoryanalysis/tests
+
+    # Set PKEY
+    PKEY0=$(cat /sys/class/infiniband/mlx5_0/ports/1/pkeys/0)
+    PKEY1=$(cat /sys/class/infiniband/mlx5_0/ports/1/pkeys/1)
+    if [ $(($PKEY0 - $PKEY1)) -gt 0 ]; then
+        IB_PKEY=$PKEY0
+    else
+        IB_PKEY=$PKEY1
+    fi
+    #UCX_PKEY=${IB_PKEY/x?/x0} # alternative to below to clear MSB
+    UCX_PKEY=$(printf '0x%04x' "$(( $IB_PKEY & 0x0FFF ))")
+
+    mpirun --allow-run-as-root -np 30 --map-by numa --bind-to core --report-bindings -mca pml ucx -mca btl self,vader -x UCX_IB_PKEY=$UCX_PKEY -x UCX_TLS=rc -x UCX_NET_DEVICES=mlx5_0:1 gmx_mpi mdrun -s freevolume.tpr -nsteps 100
+    popd
+
+%runscript
+    echo "Hello from inside the Gromacs container."

@@ -1,7 +1,7 @@
 # Singularity Definitions
 This directory contains Singularity definition files to build images which are available at the [Singularity Library](https://cloud.sylabs.io/library/verma).
 
-The definition files have been kept minimal. Please review the definition files and modify accordingly for other use cases.
+The definition files have been kept minimal. Please review the definition files and modify accordingly for other use cases. These also contain examples for running the containers, either within the %test or %runscript sections.
 
 ## Recipes
 The hierarchy of the 'layered' approach is as follows, with each successive layer re-using and building upon the previous layer.
@@ -25,8 +25,12 @@ The hierarchy of the 'layered' approach is as follows, with each successive laye
 [OpenMPI](./openmpi.def): Container with OpenMPI, configured with UCX.
 
 ### <a name="apps"></a>Applications
-[OpenFOAM](./openfoam.def): Container with complete OpenFOAM (and ThirdParty utilities) installation.
+[OpenFOAM](./openfoam.def): Container with complete [OpenFOAM](https://www.openfoam.com/releases/openfoam-v1806/) (and ThirdParty utilities) installation.
 
-[PETSc](./petsc.def): Container with PETSc.
+[PETSc](./petsc.def): Container with [PETSc](https://www.mcs.anl.gov/petsc/).
 
-[NAS](./nas.def): Container with NAS Benchmarks.
+[NAS](./nas.def): Container with [NAS Benchmarks](https://www.nas.nasa.gov/publications/npb.html).
+
+[OPM](./opm-ompi-bin.def): Container with Open Porous Media reservoir simulator ([OPM](https://opm-project.org/)). OPM simulators - OpenMPI binary package.
+
+[Gromacs](./gromacs.def): Container with [Gromacs](http://www.gromacs.org/) molecular dynamics simulation package, built with OpenMPI 4 and CUDA 10.0.
