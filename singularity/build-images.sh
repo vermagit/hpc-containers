@@ -52,7 +52,6 @@ build_from_sandbox()
 #build_from_sandbox "openfoam" "openmpi" "-T"
 #build_from_sandbox "petsc" "openmpi"
 #build_from_sandbox "nas" "openmpi"
-#build_from_image "gromacs" "openmpi" "-T"
 
 
 # build <destination container> from sandbox <source container>
@@ -79,6 +78,7 @@ build_from_image()
 #build_from_image "openfoam" "-T"
 #build_from_image "petsc"
 #build_from_image "nas"
+#build_from_image "opm-ompi-bin" "-T"
 #build_from_image "gromacs" "-T"
 
 
